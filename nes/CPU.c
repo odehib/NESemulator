@@ -14,6 +14,7 @@
 //bit 5 is unused - always 1
 #define OVERFLOW 0x40;
 #define NEGATIVE 0x80;
+#define BBBFILTER 0x1C;
 
 
 int8_t regSTAT;   //Processor's status register
@@ -22,3 +23,11 @@ int8_t regSP;    //stack pointer register
 int8_t regACC;   //accumulator register
 int8_t regX;    //general purpose register
 int8_t regY;    //general purpose register
+int8_t curr_instruction;  //the current instruction to be parsed
+
+BIT(int8_t byte1, int8_t byte2)
+{
+  
+
+  return 0;
+}
