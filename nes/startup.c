@@ -100,7 +100,7 @@ int call_instruction()
 
   //instruction dictated by aaa and cc
   call:
-    if(OP_LUT[aaa][cc]) return (*(OP_LUT[aaa][cc]))();  //call the necessary instruction and return its value
+    if(OP_LUT[cc][aaa]) return (*(OP_LUT[cc][aaa]))();  //call the necessary instruction and return its value
     else return -1; //return -1 if an invalid instruction was called (i.e. a null value in the array)
 
 
