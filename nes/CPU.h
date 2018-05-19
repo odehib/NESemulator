@@ -21,7 +21,7 @@ int JMP_IND();
 int JMP_ABS();
 int STY();
 int LDY();
-int CPY();
+int CPY();  //TODO
 int CPX();
 
 //cc=01 instructions

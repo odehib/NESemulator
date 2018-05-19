@@ -20,6 +20,7 @@ int main()
   return 0;
 }
 
+//TODO: check for invalid addressing modes called
 int call_instruction()
 {
   int8_t aaa;
