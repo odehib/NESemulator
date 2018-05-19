@@ -36,7 +36,7 @@ int call_instruction()
 
   //addressing modes described in detail at http://www.emulator101.com/6502-addressing-modes.html
   //opcode disambiguations described in detail at http://www.llx.com/~nparker/a2/opcodes.html#chart
-
+  //addressing mode dictated by cc and bbb
   switch (cc) {
     case 0: //cc=00
       switch (bbb) {
@@ -98,8 +98,10 @@ int call_instruction()
   }
 
 
+  //instruction dictated by aaa and cc
   call:
-    return (*(OP_LUT[aaa][cc]))();  //call the necessary instruction and return its value
+    if(OP_LUT[aaa][cc]) return (*(OP_LUT[aaa][cc]))();  //call the necessary instruction and return its value
+    else return -1; //return -1 if an invalid instruction was called (i.e. a null value in the array)
 
 
 
