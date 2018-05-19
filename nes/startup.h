@@ -1,1 +1,1 @@
-void call_instruction();
+int call_instruction();
