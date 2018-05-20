@@ -21,14 +21,14 @@ int JMP_IND();
 int JMP_ABS();
 int STY();
 int LDY();
-int CPY();  //TODO
+int CPY();
 int CPX();
 
 //cc=01 instructions
 int ORA();
 int AND();
 int EOR();
-int ADC();
+int ADC();  //TODO
 int STA();
 int LDA();
 int CMP();
