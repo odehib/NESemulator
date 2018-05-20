@@ -210,4 +210,7 @@ int BIT()
     else regSTAT &= ~NEGATIVE;
   }
 
-  
+  /*ADC
+    add with carry
+    adds the contents of a memory location to the accumulator
+  */
