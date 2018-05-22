@@ -18,11 +18,12 @@
 #define BBBFILTER 0x1C
 
 //TODO: check for all of the flag changes necessary
+//NOTE: S and N are equivalent labels for the same flag (sign/negative)
 
 int8_t regSTAT;   //Processor's status register
 uint16_t regPC;   //program counter
 uint8_t regSP;    //stack pointer register
-uint8_t regACC;   //accumulator register, stores the output of artithmetic and logic operations
+int8_t regACC;   //accumulator register, stores the output of artithmetic and logic operations
 int8_t regX;    //general purpose register
 int8_t regY;    //general purpose register
 int8_t curr_instruction;  //the current instruction to be parsed
@@ -40,9 +41,9 @@ The output of AND is not stored in the accumulator
 */
 int BIT()
 {
-  uint8_t temp;
-  temp = (uint8_t)(*input);
-  regSTAT ^= ((temp&&regACC) ^ regSTAT) & ZERO; //set the zero flag high if temp=0, low otherwise
+  int8_t temp;
+  temp = *input;
+  regSTAT ^= (!(!(temp&regACC)) ^ regSTAT) & ZERO; //set the zero flag high if temp&regACC=0, low otherwise
   //&& is a logical and and will output a single bit
 
   //set the negative and overflow flags to that of the stored value
@@ -94,7 +95,7 @@ int BIT()
   int LDY()
   {
     regY = *input;
-    regSTAT ^= (!!regY ^ regSTAT) & ZERO; //set the zero flag high if regY is zero, low otherwise
+    regSTAT ^= (!(!regY) ^ regSTAT) & ZERO; //set the zero flag high if regY is zero, low otherwise
     regSTAT ^= (!(regY&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to the necessary value
     return 0;
   }
@@ -111,9 +112,9 @@ int BIT()
     temp = regY - *input;
 
     //set the carry, zero, and negative flags as necessary
-    regSTAT ^= (!!temp ^ regSTAT) & ZERO; //set the zero flag high if the output is zero, low otherwise
+    regSTAT ^= (!(!temp) ^ regSTAT) & ZERO; //set the zero flag high if the output is zero, low otherwise
     regSTAT ^= (!(temp&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the subtraction output
-    regSTAT ^= ((temp&&NEGATIVE) ^ regSTAT) & CARRY; //set the carry flag to the opposite of the negative flag (since carry is set for any non-negative value)
+    regSTAT ^= (!(!(temp&NEGATIVE)) ^ regSTAT) & CARRY; //set the carry flag to the opposite of the negative flag (since carry is set for any non-negative value)
     return 0;
   }
 
@@ -129,9 +130,9 @@ int BIT()
     temp = regX - *input;
 
     //set the carry, zero, and negative flags as necessary
-    regSTAT ^= (!!temp ^ regSTAT) & ZERO; //set the zero flag high if the output is zero, low otherwise
+    regSTAT ^= (!(!temp) ^ regSTAT) & ZERO; //set the zero flag high if the output is zero, low otherwise
     regSTAT ^= (!(temp&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the subtraction output
-    regSTAT ^= ((temp&&NEGATIVE) ^ regSTAT) & CARRY; //set the carry flag to the opposite of the negative flag (since carry is set for any non-negative value)
+    regSTAT ^= (!(!(temp&NEGATIVE)) ^ regSTAT) & CARRY; //set the carry flag to the opposite of the negative flag (since carry is set for any non-negative value)
     return 0;
   }
 
@@ -142,7 +143,7 @@ int BIT()
   int ORA()
   {
     regACC |= *input;
-    regSTAT ^= (!!regACC ^ regSTAT) & ZERO; //set the zero flag high if regACC is zero, low otherwise
+    regSTAT ^= (!(!regACC) ^ regSTAT) & ZERO; //set the zero flag high if regACC is zero, low otherwise
     regSTAT ^= (!(regACC&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the accumulator value
     return 0;
   }
@@ -154,7 +155,7 @@ int BIT()
   int AND()
   {
     regACC &= *input;
-    regSTAT ^= (!!regACC ^ regSTAT) & ZERO; //set the zero flag high if regACC is zero, low otherwise
+    regSTAT ^= (!(!regACC) ^ regSTAT) & ZERO; //set the zero flag high if regACC is zero, low otherwise
     regSTAT ^= (!(regACC&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the accumulator value
     return 0;
   }
@@ -166,7 +167,7 @@ int BIT()
   int EOR()
   {
     regACC ^= *input;
-    regSTAT ^= (!!regACC ^ regSTAT) & ZERO; //set the zero flag high if regACC is zero, low otherwise
+    regSTAT ^= (!(!regACC) ^ regSTAT) & ZERO; //set the zero flag high if regACC is zero, low otherwise
     regSTAT ^= (!(regACC&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the accumulator value
     return 0;
   }
@@ -174,9 +175,211 @@ int BIT()
   /*ADC
     add with carry
     adds the contents of a memory location to the accumulator
+    affects flags S, V, Z, and C
   */
   int ADC()
   {
+    int8_t temp;
+    int8_t output;
+    int16_t carry_check;
+    bool C;
+    bool V;
+    temp = *input;
+    output = temp + regACC;
+    carry_check = (int16_t)temp + (int16_t)regACC;
+    C = (carry_check!=(int16_t)output); //if the 16 bit addition is not equivalent to the 8 bit addition, then a carry must have occurred
 
+    /*check for overflow
+    overflow occurs iff the sign bit for both inputs is different from the sign bit of the output
+    i.e. neg+neg=pos or pos+pos=neg
+    no overflow otherwise because pos+neg always yields an output smaller in magnitude than the largest value*/
+    V = (bool)((regACC^output) & (temp^output) & NEGATIVE);
+    regSTAT ^= (!V ^ regSTAT) & OVERFLOW; //set the overflow flag to V
+    regSTAT ^= (!C ^ regSTAT) & CARRY; //set the carry flag to C
+    regSTAT ^= (!(!output) ^ regSTAT) & ZERO; //set the zero flag high if the result is zero, low otherwise
+    regSTAT ^= (!(output&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the output
+
+    regACC = output;
     return 0;
+  }
+
+  /* STA
+    STA stores the accumulator in a specified address
+  */
+  int STA()
+  {
+    *input = regACC;
+    return 0;
+  }
+
+  /* LDA
+    LDA loads a value from memory into the accumulator
+    alters the N and Z flags as necessary regarding this value
+  */
+  int LDA()
+  {
+    regACC = *input;
+    regSTAT ^= (!(!regACC) ^ regSTAT) & ZERO; //set the zero flag high if the accumulator is zero, low otherwise
+    regSTAT ^= (!(regACC&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to the necessary value
+    return 0;
+  }
+
+  /* CMP
+    Compares the value at the input address to the accumulator
+    sets the carry flag high if ACC>=val
+    sets the zero flag high if ACC=val
+    sets the negative flag high if ACC<val
+    TODO: LOOK INTO POTENTIAL OVERFLOW CONDITIONS
+  */
+  int CMP()
+  {
+    int8_t temp;
+    temp = regACC - *input;
+
+    //set the carry, zero, and negative flags as necessary
+    regSTAT ^= (!(!temp) ^ regSTAT) & ZERO; //set the zero flag high if the output is zero, low otherwise
+    regSTAT ^= (!(temp&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the subtraction output
+    regSTAT ^= (!(!(temp&NEGATIVE)) ^ regSTAT) & CARRY; //set the carry flag to the opposite of the negative flag (since carry is set for any non-negative value)
+    return 0;
+  }
+
+  /*SBC
+    subtract with carry
+    subtracts the contents of a memory location from the accumulator
+    affects flags S, V, Z, and C
+    C is set high if a borrow does NOT occur, low otherwise
+    EXACTLY THE SAME AS ADC EXCEPT FOR "temp*=-1";
+  */
+  int SBC()
+  {
+    int8_t temp;
+    int8_t output;
+    int16_t carry_check;
+    bool C;
+    bool V;
+    temp = *input;
+    temp *= -1; //SBC EXACTLY THE SAME AS ADC EXCEPT FOR THIS LINE
+    output = temp + regACC;
+    carry_check = (int16_t)temp + (int16_t)regACC;
+    C = (carry_check!=(int16_t)output); //if the 16 bit addition is not equivalent to the 8 bit addition, then a carry must have occurred
+
+    /*check for overflow
+    overflow occurs iff the sign bit for both inputs is different from the sign bit of the output
+    i.e. neg+neg=pos or pos+pos=neg
+    no overflow otherwise because pos+neg always yields an output smaller in magnitude than the largest value*/
+    V = (bool)((regACC^output) & (temp^output) & NEGATIVE);
+    regSTAT ^= (!V ^ regSTAT) & OVERFLOW; //set the overflow flag to V
+    regSTAT ^= (!C ^ regSTAT) & CARRY; //set the carry flag to C
+    regSTAT ^= (!(!output) ^ regSTAT) & ZERO; //set the zero flag high if the result is zero, low otherwise
+    regSTAT ^= (!(output&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the output
+
+    regACC = output;
+    return 0;
+  }
+
+  /*ASL
+    arithmetic shift left
+    logically shift all bits left, storing bit 7 in the status register's carry flag, and the output in the accumulator
+    bit 0 becomes 0
+    alters S, Z, and C
+  */
+  int ASL()
+  {
+    regSTAT ^= (!((*input)&NEGATIVE) ^ regSTAT) & CARRY; //set the carry flag to the 7th bit of the given value
+    *input = (*input)<<1; //left shift by one bit
+    regSTAT ^= (!(!(*input)) ^ regSTAT) & ZERO; //set the zero flag high if the new value is zero, low otherwise
+    regSTAT ^= (!((*input)&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to the necessary value
+    return 0;
+  }
+
+  /*ROL
+    rotate left
+    logically shift all bits left, store the carry flag in bit 0 and store bit 7 in the carry flag
+    same as ASL but with bit 0 carrying the value of C instead of 0
+    alters S, C, Z
+  */
+  int ROL()
+  {
+    int8_t carry_original;
+    carry_original = regSTAT & CARRY; //store the original carry before it is altered
+    regSTAT ^= (!((*input)&NEGATIVE) ^ regSTAT) & CARRY; //set the carry flag to the 7th bit of the given value
+    *input = ((*input)<<1) | (carry_original); //left shift by one bit and store the carry in bit 0 (CARRY is 0x01, storing the value in the correct bit)
+    regSTAT ^= (!(!(*input)) ^ regSTAT) & ZERO; //set the zero flag high if the new value is zero, low otherwise
+    regSTAT ^= (!((*input)&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to the necessary value
+    return 0;
+  }
+
+  /*LSR
+    logical shift right
+    right shifts the value by one bit and stores bit 0 in the carry flag
+    bit 7 becomes 0
+    alters S, C, and Z
+  */
+  int LSR()
+  {
+    regSTAT ^= (!((*input)&(0x01)) ^ regSTAT) & CARRY; //set the carry flag to the 0th bit of the given value (0x01)
+    *input = (*input)>>1; //right shift by one bit
+    regSTAT ^= (!(!(*input)) ^ regSTAT) & ZERO; //set the zero flag high if the new value is zero, low otherwise
+    regSTAT ^= (!((*input)&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to the necessary value
+    return 0;
+  }
+
+  /*ROR
+    rotate right
+    logically shift all bits right, store the carry flag in bit 7 and store bit 0 in the carry flag
+    same as LSR but with bit 7 carrying the value of C instead of 0
+    alters S, C, Z
+  */
+  int ROR()
+  {
+    int8_t carry_original;
+    carry_original = regSTAT & CARRY; //store the original carry before it is altered
+    regSTAT ^= (!((*input)&(0x01)) ^ regSTAT) & CARRY; //set the carry flag to the 0th bit of the given value (0x01)
+    *input = ((*input)>>1) | (carry_original<<7); //right shift by one bit and store the original carry status in bit 7 (hence the left shift of the carry by 7)
+    regSTAT ^= (!(!(*input)) ^ regSTAT) & ZERO; //set the zero flag high if the new value is zero, low otherwise
+    regSTAT ^= (!((*input)&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to the necessary value
+    return 0;
+  }
+
+  /* STX
+    STX stores the X register in a specified address
+  */
+  int STX()
+  {
+    *input = regX;
+    return 0;
+  }
+
+  /*LDX
+    LDX loads a value from memory into the X register
+    alters the N and Z flags as necessary regarding this value
+  */
+  int LDY()
+  {
+    regX = *input;
+    regSTAT ^= (!(!regX) ^ regSTAT) & ZERO; //set the zero flag high if regY is zero, low otherwise
+    regSTAT ^= (!(regX&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to the necessary value
+    return 0;
+  }
+
+  /*DEC
+    decrement the value stored in memory
+    update S and Z flags
+  */
+  int DEC()
+  {
+    (*input) = (*input) - 1;  //decrement the value by one
+    regSTAT ^= (!(!(*input)) ^ regSTAT) & ZERO; //set the zero flag high if (*input)=0, low otherwise
+    regSTAT ^= (!((*input)&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the new value in memory
+  }
+
+  /*INC
+    increment the value stored in memory
+    update S and Z flags
+  */
+  int INC()
+  {
+    (*input) = (*input) + 1;  //increment the value by one
+    regSTAT ^= (!(!(*input)) ^ regSTAT) & ZERO; //set the zero flag high if (*input)=0, low otherwise
+    regSTAT ^= (!((*input)&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the new value in memory
   }

@@ -11,7 +11,7 @@ typedef int (*MyFunctionType)( int8_t , int8_t);
 
 MyFunctionType OP_LUT[3][8] { {NULL, &BIT, &JMP_IND, &JMP_ABS, &STY, &LDY, &CPY, &CPX}, //cc=00
                               {&ORA, &AND, &EOR, &ADC, &STA, &LDA, &CMP, &SBC}, //cc=01
-                              {&ASL, &ROL, &LSR, &ROR, &STX, &LDX, &DEX, &INC} //cc=10
+                              {&ASL, &ROL, &LSR, &ROR, &STX, &LDX, &DEC, &INC} //cc=10
                             };
 
 
@@ -28,7 +28,7 @@ int CPX();
 int ORA();
 int AND();
 int EOR();
-int ADC();  //TODO
+int ADC();
 int STA();
 int LDA();
 int CMP();
@@ -41,5 +41,5 @@ int LSR();
 int ROR();
 int STX();
 int LDX();
-int DEX();
+int DEC();
 int INC();
