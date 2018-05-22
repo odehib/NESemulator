@@ -27,12 +27,16 @@ int8_t regX;    //general purpose register
 int8_t regY;    //general purpose register
 int8_t curr_instruction;  //the current instruction to be parsed
 
+/*
+NOTE: number ^= (-x ^ number) & (1 << n) sets the nth bit of "number" to x
+for any value x, !!x sets the value to a boolean, as does !x
+*/
+
 /*BIT
 sets the Z flag as though the value in the address tested were ANDed with the accumulator.
 The N and V flags are set to match bits 7 and 6 respectively in the value stored at the tested address.
 The output of AND is not stored in the accumulator
-NOTE: number ^= (-x ^ number) & (1 << n) sets the nth bit of "number" to x
-for any value x, !!x sets the value to a boolean, as does !x
+
 */
 int BIT()
 {
@@ -56,7 +60,8 @@ int BIT()
   int JMP_IND()
   {
     //TODO: CHECK THE PAGES FOR THE PROPER BOUNDARY CONDITIONS
-    regPC = *((uint16_t*)input);
+    //TODO: CHECK IF THIS IS THE CORRECT JMP_IND IMPLEMENTATION
+    regPC = (uint16_t*)(*((uint16_t*)input)); //indirect jump, so dereference to get the proper address
     return 0;
   }
 
@@ -69,7 +74,7 @@ int BIT()
   */
   int JMP_ABS()
   {
-    regPC = *((uint16_t*)input);
+    regPC = (uint16_t*)input;
     return 0;
   }
 
@@ -79,6 +84,7 @@ int BIT()
   int STY()
   {
     *input = regY;
+    return 0;
   }
 
   /* LDY
@@ -90,6 +96,7 @@ int BIT()
     regY = *input;
     regSTAT ^= (!!regY ^ regSTAT) & ZERO; //set the zero flag high if regY is zero, low otherwise
     regSTAT ^= (!(regY&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to the necessary value
+    return 0;
   }
 
   /* CPY
@@ -107,6 +114,7 @@ int BIT()
     regSTAT ^= (!!temp ^ regSTAT) & ZERO; //set the zero flag high if the output is zero, low otherwise
     regSTAT ^= (!(temp&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the subtraction output
     regSTAT ^= ((temp&&NEGATIVE) ^ regSTAT) & CARRY; //set the carry flag to the opposite of the negative flag (since carry is set for any non-negative value)
+    return 0;
   }
 
   /* CPX
@@ -119,11 +127,12 @@ int BIT()
   {
     int8_t temp;
     temp = regX - *input;
-    
+
     //set the carry, zero, and negative flags as necessary
     regSTAT ^= (!!temp ^ regSTAT) & ZERO; //set the zero flag high if the output is zero, low otherwise
     regSTAT ^= (!(temp&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the subtraction output
     regSTAT ^= ((temp&&NEGATIVE) ^ regSTAT) & CARRY; //set the carry flag to the opposite of the negative flag (since carry is set for any non-negative value)
+    return 0;
   }
 
   /* ORA
@@ -135,6 +144,7 @@ int BIT()
     regACC |= *input;
     regSTAT ^= (!!regACC ^ regSTAT) & ZERO; //set the zero flag high if regACC is zero, low otherwise
     regSTAT ^= (!(regACC&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the accumulator value
+    return 0;
   }
 
   /* AND
@@ -146,6 +156,7 @@ int BIT()
     regACC &= *input;
     regSTAT ^= (!!regACC ^ regSTAT) & ZERO; //set the zero flag high if regACC is zero, low otherwise
     regSTAT ^= (!(regACC&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the accumulator value
+    return 0;
   }
 
   /* EOR
@@ -157,9 +168,15 @@ int BIT()
     regACC ^= *input;
     regSTAT ^= (!!regACC ^ regSTAT) & ZERO; //set the zero flag high if regACC is zero, low otherwise
     regSTAT ^= (!(regACC&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the accumulator value
+    return 0;
   }
 
   /*ADC
     add with carry
     adds the contents of a memory location to the accumulator
   */
+  int ADC()
+  {
+
+    return 0;
+  }

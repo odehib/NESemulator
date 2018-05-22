@@ -27,7 +27,6 @@ int call_instruction()
   int8_t bbb;
   int8_t cc;
   int8_t * temp_ptr;  //temporary pointer
-  int16_t twobyte_temp; //pointer to data that is two bytes long
   int8_t temp;
   twobytes = false;
   curr_instruction = ROM[regPC];
