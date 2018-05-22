@@ -45,15 +45,15 @@ int call_instruction()
         case 1:
           goto zp_abs;
         case 2:
-          return -1;  //invalid instruction
+          goto X8;
         case 3:
           goto absolute;
         case 4:
-          return -1;  //invalid instruction
+          goto branch;
         case 5:
           goto zp_index;
         case 6:
-          return -1;  //invalid instruction
+          goto X8;
         case 7:
           goto abs_indX;
       }
@@ -204,8 +204,22 @@ int call_instruction()
   send a pointer to the accumulator register to the instruction
   */
   accumulator:
-    input = (int8_t*)(&regACC);
+    input = &regACC;
     goto call;
+
+  /*BRANCH FUNCTIONS
+  all branch instructions confined to one function
+  offset to be used is the byte after the opcode
+  pass this value to the branch function
+  */
+  branch:
+    input = ROM + (int8_t*)regPC + 1; //input to be branched by is the single byte after the opcode
+    regPC+=2; //two byte instruction
+    return BRANCH();
+
+  /* all single byte opcodes that end in 0x8 are confined to their own array for simplicity */
+  X8:
+    return (*(X8_LUT[(curr_instruction>>4)]))();      //bitshift by 4 to get the 4 msb's to distinguish each function
 
 
 }

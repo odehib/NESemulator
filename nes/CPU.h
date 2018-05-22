@@ -7,13 +7,17 @@ Once the proper opcode and addressing mode is located, the necessary bytes of in
 Reference used: http://www.llx.com/~nparker/a2/opcodes.html
 */
 
-typedef int (*MyFunctionType)( int8_t , int8_t);
+typedef int (*MyFunctionType)(void);
 
+//functions for all opcodes using convential addressing modes
 MyFunctionType OP_LUT[3][8] { {NULL, &BIT, &JMP_IND, &JMP_ABS, &STY, &LDY, &CPY, &CPX}, //cc=00
                               {&ORA, &AND, &EOR, &ADC, &STA, &LDA, &CMP, &SBC}, //cc=01
                               {&ASL, &ROL, &LSR, &ROR, &STX, &LDX, &DEC, &INC} //cc=10
                             };
 
+//functions for all opcodes ending in 0x8
+MyFunctionType X8_LUT[16] {&PHP, &CLC, &PLP, &SEC, &PHA, &CLI, &PLA, &SEI,
+                          &DEY, &TYA, &TAY, &CLV, &INY, &CLD, &INX, &SED};
 
 //cc=00 instructions
 int BIT();
@@ -43,3 +47,24 @@ int STX();
 int LDX();
 int DEC();
 int INC();
+
+//leftover non-uniform opcodes
+int BRANCH();
+
+//0x8 functions
+int PHP();
+int CLC();
+int PLP();
+int SEC();
+int PHA();
+int CLI();
+int PLA();
+int SEI();
+int DEY();
+int TYA();
+int TAY();
+int CLV();
+int INY();
+int CLD();
+int INX();
+int SED();

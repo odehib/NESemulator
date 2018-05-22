@@ -15,7 +15,11 @@
 //bit 5 is unused - always 1
 #define OVERFLOW 0x40
 #define NEGATIVE 0x80
-#define BBBFILTER 0x1C
+
+//tools to be used for branching
+#define XXFILTER 0xC0
+#define YFILTER 0x20
+int16_t BRVALS[4] = {NEGATIVE, OVERFLOW, CARRY, ZERO};
 
 //TODO: check for all of the flag changes necessary
 //NOTE: S and N are equivalent labels for the same flag (sign/negative)
@@ -382,4 +386,19 @@ int BIT()
     (*input) = (*input) + 1;  //increment the value by one
     regSTAT ^= (!(!(*input)) ^ regSTAT) & ZERO; //set the zero flag high if (*input)=0, low otherwise
     regSTAT ^= (!((*input)&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the new value in memory
+  }
+
+  /*BRANCH
+    All branch instructions defined in one function
+    branch instructions are of the form xxy10000 followed by the displacement
+  */
+  int BRANCH()
+  {
+    int8_t xx, y;
+    int32_t newPC;
+    xx = curr_instruction & XXFILTER;
+    y = curr_instruction & YFILTER;
+    newPC = (int32_t)regPC + (int32_t)(*input); //cast as 32 bits to deal with subtraction from an unsigned number
+    if((regSTAT & 1<<BRVALS[xx])==y) regPC = (uint16_t)newPC; //if the status value to be checked matches the y value, perform the branch
+    return 0;
   }
