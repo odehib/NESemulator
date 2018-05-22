@@ -2,6 +2,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "CPU.h"
 
 //enable status bits by ORing the proper constant defined below
@@ -30,25 +31,22 @@ int8_t curr_instruction;  //the current instruction to be parsed
 sets the Z flag as though the value in the address tested were ANDed with the accumulator.
 The N and V flags are set to match bits 7 and 6 respectively in the value stored at the tested address.
 The output of AND is not stored in the accumulator
+NOTE: number ^= (-x ^ number) & (1 << n) sets the nth bit of "number" to x
+for any value x, !!x sets the value to a boolean, as does !x
 */
 int BIT()
 {
   uint8_t temp;
-  temp = regACC & (uint8_t)(*input);
-  if(temp) regSTAT &= ~ZERO;  //set the zero flag high or low based on the logic output
-  else regSTAT |= ZERO;
-
   temp = (uint8_t)(*input);
+  regSTAT ^= ((temp&&regACC) ^ regSTAT) & ZERO; //set the zero flag high if temp=0, low otherwise
+  //&& is a logical and and will output a single bit
 
   //set the negative and overflow flags to that of the stored value
-  if(temp&NEGATIVE) regSTAT |= NEGATIVE;
-  else regSTAT &= ~NEGATIVE;
-
-  if(temp&OVERFLOW) regSTAT |= OVERFLOW;
-  else regSTAT &= ~OVERFLOW;
+  regSTAT ^= (!(temp&NEGATIVE) ^ regSTAT) & NEGATIVE;
+  regSTAT ^= (!(temp&OVERFLOW) ^ regSTAT) & OVERFLOW;
 
   return 0;
-  }
+}
 
   /*JMP_IND
   Transfers program execution to the location contained in the following address (indirect).
@@ -90,11 +88,8 @@ int BIT()
   int LDY()
   {
     regY = *input;
-    if(!regY) regSTAT |= ZERO;  //set the zero flag to the necessary value
-    else regSTAT &= ~ZERO;
-
-    if(regY & NEGATIVE) regSTAT |= NEGATIVE;  //set the negative flag to the necessary value
-    else regSTAT &= ~NEGATIVE;
+    regSTAT ^= (!!regY ^ regSTAT) & ZERO; //set the zero flag high if regY is zero, low otherwise
+    regSTAT ^= (!(regY&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to the necessary value
   }
 
   /* CPY
@@ -109,26 +104,9 @@ int BIT()
     temp = regY - *input;
 
     //set the carry, zero, and negative flags as necessary
-    if(!temp) //zero case
-    {
-      regSTAT |= CARRY;
-      regSTAT |= ZERO;
-      regSTAT &= ~NEGATIVE;
-    }
-
-    else if(temp<0) //negative case
-    {
-      regSTAT |= NEGATIVE;
-      regSTAT &= ~ZERO;
-      regSTAT &= ~CARRY
-    }
-
-    else  //positive case
-    {
-       regSTAT &= ~ZERO;
-       regSTAT &= ~NEGATIVE;
-       regSTAT |= CARRY;
-    }
+    regSTAT ^= (!!temp ^ regSTAT) & ZERO; //set the zero flag high if the output is zero, low otherwise
+    regSTAT ^= (!(temp&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the subtraction output
+    regSTAT ^= ((temp&&NEGATIVE) ^ regSTAT) & CARRY; //set the carry flag to the opposite of the negative flag (since carry is set for any non-negative value)
   }
 
   /* CPX
@@ -137,32 +115,15 @@ int BIT()
     sets the zero flag high if X=val
     sets the negative flag high if X<val
   */
-  int CPY()
+  int CPX()
   {
     int8_t temp;
     temp = regX - *input;
-
+    
     //set the carry, zero, and negative flags as necessary
-    if(!temp) //zero case
-    {
-      regSTAT |= CARRY;
-      regSTAT |= ZERO;
-      regSTAT &= ~NEGATIVE;
-    }
-
-    else if(temp<0) //negative case
-    {
-      regSTAT |= NEGATIVE;
-      regSTAT &= ~ZERO;
-      regSTAT &= ~CARRY
-    }
-
-    else  //positive case
-    {
-       regSTAT &= ~ZERO;
-       regSTAT &= ~NEGATIVE;
-       regSTAT |= CARRY;
-    }
+    regSTAT ^= (!!temp ^ regSTAT) & ZERO; //set the zero flag high if the output is zero, low otherwise
+    regSTAT ^= (!(temp&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the subtraction output
+    regSTAT ^= ((temp&&NEGATIVE) ^ regSTAT) & CARRY; //set the carry flag to the opposite of the negative flag (since carry is set for any non-negative value)
   }
 
   /* ORA
@@ -172,12 +133,8 @@ int BIT()
   int ORA()
   {
     regACC |= *input;
-
-    if(!regACC) regSTAT |= ZERO;
-    else regSTAT &= ~ZERO;
-
-    if(regACC & NEGATIVE) regSTAT |= NEGATIVE;
-    else regSTAT &= ~NEGATIVE;
+    regSTAT ^= (!!regACC ^ regSTAT) & ZERO; //set the zero flag high if regACC is zero, low otherwise
+    regSTAT ^= (!(regACC&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the accumulator value
   }
 
   /* AND
@@ -187,12 +144,8 @@ int BIT()
   int AND()
   {
     regACC &= *input;
-
-    if(!regACC) regSTAT |= ZERO;
-    else regSTAT &= ~ZERO;
-
-    if(regACC & NEGATIVE) regSTAT |= NEGATIVE;
-    else regSTAT &= ~NEGATIVE;
+    regSTAT ^= (!!regACC ^ regSTAT) & ZERO; //set the zero flag high if regACC is zero, low otherwise
+    regSTAT ^= (!(regACC&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the accumulator value
   }
 
   /* EOR
@@ -202,12 +155,8 @@ int BIT()
   int EOR()
   {
     regACC ^= *input;
-
-    if(!regACC) regSTAT |= ZERO;
-    else regSTAT &= ~ZERO;
-
-    if(regACC & NEGATIVE) regSTAT |= NEGATIVE;
-    else regSTAT &= ~NEGATIVE;
+    regSTAT ^= (!!regACC ^ regSTAT) & ZERO; //set the zero flag high if regACC is zero, low otherwise
+    regSTAT ^= (!(regACC&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the accumulator value
   }
 
   /*ADC
