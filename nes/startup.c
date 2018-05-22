@@ -41,8 +41,10 @@ int call_instruction()
     case 0: //cc=00
       switch (bbb) {
         case 0:
+          if(bbb<5) return -1;  //invalid opcodes described on llx page linked above
           goto immediate;
         case 1:
+          if(bbb/2 == 1) return -1; //invalid for bbb=2,3
           goto zp_abs;
         case 2:
           return -1;  //invalid instruction
@@ -51,10 +53,12 @@ int call_instruction()
         case 4:
           return -1;  //invalid instruction
         case 5:
+          if(bbb/2 != 2) return -1; //only valid for bbb = 4,5
           goto zp_index;
         case 6:
           return -1;  //invalid instruction
         case 7:
+          if(bbb != 5) return -1; //valid only for bbb=5
           goto abs_indX;
       }
     case 1: //cc=01
