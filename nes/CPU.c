@@ -58,7 +58,7 @@ int BIT()
   int JMP_IND()
   {
     //TODO: CHECK THE PAGES FOR THE PROPER BOUNDARY CONDITIONS
-    regPC = (uint16_t*)input;
+    regPC = *((uint16_t*)input);
     return 0;
   }
 
@@ -71,7 +71,7 @@ int BIT()
   */
   int JMP_ABS()
   {
-    regPC = (uint16_t*)input;
+    regPC = *((uint16_t*)input);
     return 0;
   }
 
