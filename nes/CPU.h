@@ -51,7 +51,7 @@ int INC();
 //leftover non-uniform opcodes
 int BRANCH();
 
-//0x8 functions
+//$X8 functions
 int PHP();
 int CLC();
 int PLP();
@@ -60,15 +60,25 @@ int PHA();
 int CLI();
 int PLA();
 int SEI();
-int DEY();  //TODO
-int TYA();  //TODO
-int TAY();  //TODO
+int DEY();
+int TYA();
+int TAY();
 int CLV();
-int INY();  //TODO
+int INY();
 int CLD();
-int INX();  //TODO
+int INX();
 int SED();
 
-//0xA functions
+//$XA functions
 int TXS();
 int TSX();
+int TAX();
+int TXA();
+int DEX();
+int NOP();
+
+//$X0 functions
+int BRK();
+int JSR();
+int RTI();
+int RTS();

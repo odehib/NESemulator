@@ -220,6 +220,7 @@ int call_instruction()
 
   /* all single byte opcodes that end in 0x8 are confined to their own array for simplicity */
   X8:
+    regPC++;  //single byte instructions
     return (*(X8_LUT[(curr_instruction>>4)]))();      //bitshift by 4 to get the 4 msb's to distinguish each function
 
 

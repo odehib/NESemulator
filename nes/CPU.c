@@ -21,6 +21,8 @@
 #define YFILTER 0x20
 int16_t BRVALS[4] = {NEGATIVE, OVERFLOW, CARRY, ZERO};
 
+#define INTERRUPT_VECTOR 0xFFFE
+
 //TODO: check for all of the flag changes necessary
 //NOTE: S and N are equivalent labels for the same flag (sign/negative)
 
@@ -505,5 +507,143 @@ int BIT()
   int SED()
   {
     regSTAT |= BCD;
+    return 0;
+  }
+
+  //DEY - decrement Y and update the S and Z flags
+  int DEY()
+  {
+    regY--;
+    regSTAT ^= (!(!regY) ^ regSTAT) & ZERO; //set the zero flag high if Y is zero, low otherwise
+    regSTAT ^= (!(regY&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the Y value
+    return 0;
+  }
+
+  //TAY - transfer accumulator to Y
+  int TAY()
+  {
+    regY = regACC;
+    regSTAT ^= (!(!regY) ^ regSTAT) & ZERO; //set the zero flag high if Y is zero, low otherwise
+    regSTAT ^= (!(regY&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the Y value
+    return 0;
+  }
+
+  //TYA - transfer Y to accumulator
+  int TYA()
+  {
+    regACC = regY;
+    regSTAT ^= (!(!regACC) ^ regSTAT) & ZERO; //set the zero flag high if Y is zero, low otherwise
+    regSTAT ^= (!(regACC&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the Y value
+    return 0;
+  }
+
+  //INY - increment Y
+  int INY()
+  {
+    regY++;
+    regSTAT ^= (!(!regY) ^ regSTAT) & ZERO; //set the zero flag high if Y is zero, low otherwise
+    regSTAT ^= (!(regY&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the Y value
+    return 0;
+  }
+
+  //INX - increment X
+  int INX()
+  {
+    regX++;
+    regSTAT ^= (!(!regX) ^ regSTAT) & ZERO; //set the zero flag high if Y is zero, low otherwise
+    regSTAT ^= (!(regX&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the Y value
+    return 0;
+  }
+
+  //TAX - transfer accumulator to X
+  int TAX()
+  {
+    regX = regACC;
+    regSTAT ^= (!(!regX) ^ regSTAT) & ZERO; //set the zero flag high if Y is zero, low otherwise
+    regSTAT ^= (!(regX&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the Y value
+    return 0;
+  }
+
+  //TXA - transfer X to the accumulator
+  int TXA()
+  {
+    regACC = regX;
+    regSTAT ^= (!(!regACC) ^ regSTAT) & ZERO; //set the zero flag high if Y is zero, low otherwise
+    regSTAT ^= (!(regACC&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the Y value
+    return 0;
+  }
+
+  //DEX - decrement X
+  int DEX()
+  {
+    regX--;
+    regSTAT ^= (!(!regX) ^ regSTAT) & ZERO; //set the zero flag high if Y is zero, low otherwise
+    regSTAT ^= (!(regX&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the Y value
+    return 0;
+  }
+
+  //NOP - no operation
+  int NOP()
+  {
+    //does nothing besides moving on to the next instruction
+    return 0;
+  }
+
+  /*JSR
+  Jump to subroutine
+  pushes the address of the next instruction minus 1 to the stack
+  sets the program to the target memory address
+  only uses absolute addressing and is the only instruction that does so in a different format than those in the OP_LUT
+  */
+  int JSR
+  {
+    *((uint16_t*)(stack + (int8_t*)regSP)) = regPC;   //push the two byte PC to the stack
+    regSP+=2; //two bytes stored in stack
+    regPC = *((uint16_t*)input);  //jump to the subroutine by changing PC to the target address
+    return 0;
+  }
+
+  /*RTS
+  Return from subroutine
+  pulls the value of PC-1 stored on the stack to return to previous operation
+  implied addressing mode
+  */
+  int RTS()
+  {
+    regSP-=2;
+    regPC = *((uint16_t*)(stack + (int8_t*)regSP)); //pop the two byte PC register from the stack
+    regPC++;
+    return 0;
+  }
+
+  /*BRK
+  Force interrupt
+  generates an interrupt request
+  pushes the PC and status onto the stack
+  the interrupt vector at $FFFE - $FFFF is loaded into PC
+  the BRK flag is set to one
+  pushes the PC first
+  */
+  int BRK()
+  {
+    *((uint16_t*)(stack + (int8_t*)regSP)) = regPC; //push the two byte PC to the stack
+    regSP += 2;
+    stack[regSP] = regSTAT; //push the single byte stack pointer to the stack
+    regSP++;
+    regPC = *((uint16_t*)(ROM + INTERRUPT_VECTOR)); //sets the PC value to the interrupt vector
+    regSTAT |= BRK; //enable the break command flag
+    return 0;
+  }
+
+  /*RTI
+  Return from interrupt
+  pops the status then the PC from the stack
+  */
+  int RTI()
+  {
+    regSP--;
+    regSTAT = stack[regSP];
+    regSP-=2;
+    regPC = *((uint16_t*)(stack + (int8_t*)regSP)); //pop the two byte PC register from the stack
     return 0;
   }
