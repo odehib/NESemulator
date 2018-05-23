@@ -595,7 +595,7 @@ int BIT()
   sets the program to the target memory address
   only uses absolute addressing and is the only instruction that does so in a different format than those in the OP_LUT
   */
-  int JSR
+  int JSR()
   {
     *((uint16_t*)(stack + (int8_t*)regSP)) = regPC;   //push the two byte PC to the stack
     regSP+=2; //two bytes stored in stack
