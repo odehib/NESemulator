@@ -7,6 +7,8 @@ Once the proper opcode and addressing mode is located, the necessary bytes of in
 Reference used: http://www.llx.com/~nparker/a2/opcodes.html
 */
 
+//NOTE: $ implies a hex value, X is used to indicate an arbitrary 4-bit hex value
+
 typedef int (*MyFunctionType)(void);
 
 //functions for all opcodes using convential addressing modes
@@ -16,8 +18,12 @@ MyFunctionType OP_LUT[3][8] { {NULL, &BIT, &JMP_IND, &JMP_ABS, &STY, &LDY, &CPY,
                             };
 
 //functions for all opcodes ending in 0x8
-MyFunctionType X8_LUT[16] {&PHP, &CLC, &PLP, &SEC, &PHA, &CLI, &PLA, &SEI,
+MyFunctionType X8_LUT[16] = {&PHP, &CLC, &PLP, &SEC, &PHA, &CLI, &PLA, &SEI,
                           &DEY, &TYA, &TAY, &CLV, &INY, &CLD, &INX, &SED};
+
+MyFunctionType X0_LUT[4] = {&BRK, &JSR, &RTI, &RTS};  //four non-uniform instructions with opcodes in the $X0 format
+
+MyFunctionType XA_LUT[5] = {&TXA, &TXS, &TAX, &TSX, &DEX};  //five non-uniform instructions with opcodes in the $XA format (excluding NOP, which is handled in startup.c)
 
 //cc=00 instructions
 int BIT();

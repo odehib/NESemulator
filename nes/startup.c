@@ -12,7 +12,6 @@
 int8_t * ROM;
 int8_t * input; //address holding input for instruction
 int8_t * stack;
-bool twobytes;  //boolean to dictate whether to read one or two bytes from the given address
 
 int main()
 {
@@ -29,7 +28,6 @@ int call_instruction()
   int8_t cc;
   int8_t * temp_ptr;  //temporary pointer
   int8_t temp;
-  twobytes = false;
   curr_instruction = ROM[regPC];
   aaa = (curr_instruction & AAAFILTER)>>5;  //shift by five bits to make aaa the least significant bits
   bbb = (curr_instruction & BBBFILTER)>>2;  //shift by two bits to make bbb the least significant bits
@@ -42,21 +40,32 @@ int call_instruction()
     case 0: //cc=00
       switch (bbb) {
         case 0:
-          goto immediate;
+          temp = curr_instruction>>4; //check the first four bits to parse this mode
+          //bbb=000 guarantees an even 'temp' value, as is required for these instructions
+          if (temp>8)  goto immediate; //immediate addressing modes all have a 'temp' value greater than 8
+          else if (temp<8)  goto X0;  //all X0 instructions have a 'temp' value less than 8
+          else return -1; //no instruction for 0x80
         case 1:
+          if(aaa>>1 == 1) return -1;  //zp_abs is invalid for JMP and JMP_ABS in this section (aaa= 010 and 011 respectively)
           goto zp_abs;
         case 2:
-          goto X8;
+          //ALL VALID HERE
+          goto X8;  //non-convential mode
         case 3:
+          //ALL VALID HERE
           goto absolute;
         case 4:
-          goto branch;
+          //ALL VALID HERE
+          goto branch;  //non-convential mode
         case 5:
-          goto zp_index;
+          if(aaa>>1 == 2) goto zp_indexX;  //i.e. ZP, X
+          return -1;  //zp_indexX only valid for STY and LDY in this section (aaa=100 and 101 respectively)
         case 6:
-          goto X8;
+          //ALL VALID HERE
+          goto X8;  //non-convential mode
         case 7:
-          goto abs_indX;
+          if(aaa==5)  goto abs_indX;  //i.e. absolute, X
+          return -1;  //abs_indX only valid for LDY in this section (aaa=101)
       }
     case 1: //cc=01
       switch (bbb) {
@@ -65,13 +74,15 @@ int call_instruction()
         case 1:
           goto zp_abs;
         case 2:
-          goto immediate;
+          //STA imm8 (aaa=4, bbb=2) is the ONLY invalid instruction for cc=01
+          if(aaa!=4)  goto immediate;
+          return -1;
         case 3:
           goto absolute;
         case 4:
           goto indirY;
         case 5:
-          goto zp_index;
+          goto zp_indexX;
         case 6:
           goto abs_indY;
         case 7:
@@ -79,21 +90,30 @@ int call_instruction()
     case 2:   //cc=10
       switch (bbb) {
         case 0:
-          goto immediate;
+          if(aaa==5) goto immediate;
+          return -1;  //ldx (aaa=5) is the only valid instruction here
         case 1:
+          //ALL VALID HERE
           goto zp_abs;
         case 2:
-          goto accumulator;
+          if(aaa>>2) goto XA; //non-convential mode that's valid here if aaa>=4 (bitshift by two is division by 4, which yields zero if aaa<4)
+          goto accumulator; //all other codes in this section are valid accumulator addressing instructions
         case 3:
+          //ALL VALID HERE
           goto absolute;
         case 4:
-          return -1;  //invalid instruction
+          return -1;  //invalid instruction (for the original 6502)
         case 5:
-          goto zp_ind;
+          if(aaa>>1 == 2) goto zp_indexY; //for stx and ldx (aaa==100,101), use zp, Y instead of zp, X
+          goto zp_indexX;
         case 6:
-          return -1; //invalid instruction
+          //for bbb=110, cc=10, the only valid modes for aaa are 100 and 101 - this if statements checks for those values
+          if(aaa>>1 == 2) goto XA;  //non-convential mode
+          else return -1; //invalid instruction otherwise
         case 7:
-          goto abs_indX;
+          if(aaa=5) goto abs_indY;  //ldx (aaa=5) uses abs_indY instead of abs_indX
+          else if(aaa!=4) goto abs_indX;  //stx (aaa=4) is invalid in this mode
+          return -1;
     default:
       return -1;  //no instructions with cc=11
   }
@@ -103,6 +123,7 @@ int call_instruction()
   call:
     if(OP_LUT[cc][aaa]) return (*(OP_LUT[cc][aaa]))();  //call the necessary instruction and return its value
     else return -1; //return -1 if an invalid instruction was called (i.e. a null value in the array)
+    //some functions have a format that will point to the NULL entry in this array, but those calls should never reach this subroutine
 
 
 
@@ -136,19 +157,29 @@ int call_instruction()
   absolute:
     temp_ptr = ROM + (int8_t*)regPC + 1;  //use temp pointer to add one byte to the address and get the immediate two byte value
     input = (int8_t*)(*((int16_t*)temp_ptr));   //set input as two bytes at specified temp_ptr address and store it as a character pointer
-    twobytes = true;
     regPC+=3; //3 byte instruction
     goto call;
 
-  /*ZERO PAGE INDEXED ADDRESSING MODE
+  /*ZERO PAGE INDEXED ADDRESSING MODE (regX)
   value to be used is stored in the address indicated by the immediate zero page address + X
   receive byte immediately following opcode and add it to the X register to get this address
   send this address to the instruction
   */
-  zp_index:
+  zp_indexX:
     input = (int8_t*)(ROM[regPC+1] + regX);
     regPC+=2; //two byte instruction
     goto call;
+
+  /*ZERO PAGE INDEXED ADDRESSING MODE (regY)
+  value to be used is stored in the address indicated by the immediate zero page address + Y
+  receive byte immediately following opcode and add it to the Y register to get this address
+  send this address to the instruction
+  */
+  zp_indexY:
+    input = (int8_t*)(ROM[regPC+1] + regY);
+    regPC+=2; //two byte instruction
+    goto call;
+
 
   /*ABSOLUTE X INDEXED ADDRESSING MODE
   address to be used is the two bytes immediately following the opcode added to the X register
@@ -158,7 +189,6 @@ int call_instruction()
     temp_ptr = ROM + (int8_t*)regPC + 1;  //use temp pointer to add one byte to the address and get the immediate two byte value
     input = (int8_t*)(*((int16_t*)temp_ptr));   //set input as two bytes at specified temp_ptr address and store it as a character pointer
     input += (int8_t*)regX; //add X to the input value
-    twobytes = true;
     regPC+=3; //3 byte instruction
     goto call;
 
@@ -170,7 +200,6 @@ int call_instruction()
     temp_ptr = ROM + (int8_t*)regPC + 1;  //use temp pointer to add one byte to the address and get the immediate two byte value
     input = (int8_t*)(*((int16_t*)temp_ptr));   //set input as two bytes at specified temp_ptr address and store it as a character pointer
     input += (int8_t*)regY; //add Y to the input value
-    twobytes = true;
     regPC+=3; //3 byte instruction
     goto call;
 
@@ -183,7 +212,6 @@ int call_instruction()
     temp_ptr = (int8_t*)(ROM[regPC + 1] + regX);  //receive immediate byte for zero page index and add it to X
     temp_ptr = temp_ptr & 0xFF; //bitmask to have circular address loop in the zero page
     input = (int8_t*)(*((int16_t*)temp_ptr)); //receive two bytes stored at temp_ptr value
-    twobytes = true;
     regPC += 2; //two byte instruction
     goto call;
 
@@ -196,7 +224,6 @@ int call_instruction()
     temp = ROM[regPC + 1];
     input = (int8_t*)(*((int16_t*)temp)); //store the two bytes stored at the designated zero page address in input
     input += (int8_t*)regY; //add Y to the input value
-    twobytes = true;
     regPC += 2; //two byte instruction
     goto call;
 
@@ -223,5 +250,17 @@ int call_instruction()
     regPC++;  //single byte instructions
     return (*(X8_LUT[(curr_instruction>>4)]))();      //bitshift by 4 to get the 4 msb's to distinguish each function
 
+  X0:
+    input = ROM + (int8_t*)regPC + 1; //input for absolute addressing mode for JSR
+    regPC += 1 + ((temp==2) * 2); //temp=2 indicates an absolute JSR, which is a 3 byte instruction - all others are a single byte (implied addressing modes)
+    temp>>2;  //divide temp by two to index into the X0 array
+    return (*(X0_LUT[temp]))(); //call the function corresponsing to the first four bits
+
+  XA:
+    regPC++;  //all instructions here are a single byte long
+    temp = curr_instruction>>4;
+    if(temp==0xE) return NOP(); //doesn't fit with the indexing scheme below and is therefore called independently
+    temp-=(0x8);  //instructions start at 0x8A, so subtract 8 from 'temp' (the first four bits of the opcode)
+    return (*(XA_LUT[temp]))();
 
 }
