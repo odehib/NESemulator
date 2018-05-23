@@ -11,6 +11,7 @@
 
 int8_t * ROM;
 int8_t * input; //address holding input for instruction
+int8_t * stack;
 bool twobytes;  //boolean to dictate whether to read one or two bytes from the given address
 
 int main()

@@ -34,7 +34,7 @@ int8_t curr_instruction;  //the current instruction to be parsed
 
 /*
 NOTE: number ^= (-x ^ number) & (1 << n) sets the nth bit of "number" to x
-for any value x, !!x sets the value to a boolean, as does !x
+For any value x, !!x sets the value to a boolean, as does !x
 */
 
 /*BIT
@@ -400,5 +400,59 @@ int BIT()
     y = curr_instruction & YFILTER;
     newPC = (int32_t)regPC + (int32_t)(*input); //cast as 32 bits to deal with subtraction from an unsigned number
     if((regSTAT & 1<<BRVALS[xx])==y) regPC = (uint16_t)newPC; //if the status value to be checked matches the y value, perform the branch
+    return 0;
+  }
+
+  /* STACK INSTRUCTIONS */
+
+  //TXS - store X in the stack pointer
+  int TXS()
+  {
+    regSP = regX;
+    return 0;
+  }
+
+  //store the stack pointer in X
+  int TSX()
+  {
+    regX = regSP;
+    regSTAT ^= (!(!regX) ^ regSTAT) & ZERO; //set the zero flag high if regACC is zero, low otherwise
+    regSTAT ^= (!(regX&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the accumulator value
+    return 0;
+  }
+
+  //PHA - push accumulator to stack
+  int PHA()
+  {
+    stack[regSP] = regACC;
+    regSP++;
+    return 0;
+  }
+
+  //PLA - pull (pop) accumulator from stack
+  //Set the N and Z flags to match the new accumulator value
+  int PLA()
+  {
+    regSP--;
+    regACC = stack[regSP];
+    regSTAT ^= (!(!regACC) ^ regSTAT) & ZERO; //set the zero flag high if regACC is zero, low otherwise
+    regSTAT ^= (!(regACC&NEGATIVE) ^ regSTAT) & NEGATIVE; //set the negative flag to that of the accumulator value
+    return 0;
+  }
+
+  //PHP - push status to stack
+  int PHP()
+  {
+    stack[regSP] = regSTAT;
+    regSP++;
+    return 0;
+  }
+
+
+  //PLP - pull (pop) status from stack
+  int PLP()
+  {
+    regSP--;
+    regSTAT = stack[regSP];
     return 0;
   }
