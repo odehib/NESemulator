@@ -448,11 +448,62 @@ int BIT()
     return 0;
   }
 
-
   //PLP - pull (pop) status from stack
   int PLP()
   {
     regSP--;
     regSTAT = stack[regSP];
+    return 0;
+  }
+
+  /* STATUS FLAG INSTRUCTIONS */
+
+  //CLC - clear the carry flag
+  int CLC()
+  {
+    regSTAT &= ~CARRY;
+    return 0;
+  }
+
+  //SEC - set the carry flag
+  int SEC()
+  {
+    regSTAT |= CARRY;
+    return 0;
+  }
+
+  //CLI - clears the interrupt disable flag
+  int CLI()
+  {
+    regSTAT &= ~INT_DISABLE;
+    return 0;
+  }
+
+  //SEI - sets the interrupt disable flag
+  int SEI()
+  {
+    regSTAT |= INT_DISABLE;
+    return 0;
+  }
+
+  //CLV - clears the overflow flag
+  int CLV()
+  {
+    regSTAT &= ~OVERFLOW;
+    return 0;
+  }
+
+  //NOTE: probably should set the BCD fxns to return -1 since NES games shouldn't be calling it
+  //CLD - clears the BCD flag
+  int CLD()
+  {
+    regSTAT &= ~BCD;
+    return 0;
+  }
+
+  //SED - sets the BCD flag
+  int SED()
+  {
+    regSTAT |= BCD;
     return 0;
   }

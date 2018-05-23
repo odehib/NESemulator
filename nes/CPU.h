@@ -53,21 +53,21 @@ int BRANCH();
 
 //0x8 functions
 int PHP();
-int CLC();  //TODO
+int CLC();
 int PLP();
-int SEC();  //TODO
+int SEC();
 int PHA();
-int CLI();  //TODO
+int CLI();
 int PLA();
-int SEI();  //TODO
+int SEI();
 int DEY();  //TODO
 int TYA();  //TODO
 int TAY();  //TODO
-int CLV();  //TODO
+int CLV();
 int INY();  //TODO
-int CLD();  //TODO
+int CLD();
 int INX();  //TODO
-int SED();  //TODO
+int SED();
 
 //0xA functions
 int TXS();
