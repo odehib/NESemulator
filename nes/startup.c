@@ -2,7 +2,6 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include "startup.h"
 
 #define CCFILTER 0x03  //filter only the last two bits of the instruction
@@ -12,15 +11,15 @@
 int8_t * ROM;
 int8_t * input; //address holding input for instruction
 int8_t * stack;
+int8_t * nes_file
 
 int main()
 {
-  ROM = NULL; //temporary placeholder for compilation
+  nes_file = fopen("[filename].NES", r+); //temporary placeholder for compilation
   regSTAT = 0x20; //start the status register with only the unused bit enabled, as is standard
   return 0;
 }
 
-//TODO: check for invalid addressing modes called
 int call_instruction()
 {
   int8_t aaa;

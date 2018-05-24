@@ -66,8 +66,30 @@ int BIT()
   */
   int JMP_IND()
   {
-    //TODO: CHECK THE PAGES FOR THE PROPER BOUNDARY CONDITIONS
-    //TODO: CHECK IF THIS IS THE CORRECT JMP_IND IMPLEMENTATION
+    //check the address for page boundary condition
+    //CPU memory map corresponding to these boundaries is depicted on page 11 of NESDoc.pdf
+    int8_t * temp;
+    temp_ptr = input - ROM; //use temp as a relative address to the start of the memory map
+    if(temp<0x2000) //RAM page
+    {
+      temp = temp%0x800;  //the memory is mirrored every 0x800 bytes
+      temp++;
+      if((temp==0x800)||(temp==0x200)||(temp==0x100)) return -1;  //these values indicate the end of a page
+    }
+    else if(temp<0x4000)  //  IO regs 0-7
+    {
+      temp = temp%0x8;  //mirrored every 0x8 bytes
+      if(temp==0x7) return -1;  //indicates the end of a page mirror
+    }
+    else if (temp==0x401F) return -1; //end of IO reg page
+    else
+    {
+      temp++;
+      if(temp==0x6000 ||  temp==0x8000  ||  temp==0xC000  ||  temp==0x10000) return -1; //all indictae end of a page
+    }
+    // if(!((temp+1)%0x2000)) return -1; //0x2000, 0x4000, 0x6000, 0x8000, and 0x10000 all mark new pages
+
+    //TODO: CHECK IF THIS IS THE CORRECT JMP_IND IMPLEMENTATION (I think so, will unit test)
     regPC = (uint16_t*)(*((uint16_t*)input)); //indirect jump, so dereference to get the proper address
     return 0;
   }
