@@ -7,16 +7,37 @@
 #define CCFILTER 0x03  //filter only the last two bits of the instruction
 #define BBBFILTER 0x1C  //filter bits 2-4 of the instruction
 #define AAAFILTER 0xE0  //filter bits 5-7 of the instruction
+#define SIZE 0x10000  //size of the memory map
 
 int8_t * ROM;
 int8_t * input; //address holding input for instruction
 int8_t * stack;
-int8_t * nes_file
+int8_t * nes_file;
+int8_t header; //header of the nes_file
+FILE * fp;
 
 int main()
 {
-  nes_file = fopen("[filename].NES", r+); //temporary placeholder for compilation
+  //TODO: fix fgets since it stops at EOF
+  fp = fopen("[filename].NES", r); //temporary placeholder for compilation FIXME
+  nes_file = malloc(SIZE); //create heap memory for the contents of the nes file
+  if(!fgets(nes_file, SIZE+1, fp))  //copy SIZE+1 data from the file into memory (plus one for EOF)
+  {
+    fclose("[filename].NES"); //FIXME (name)
+    free(NES_file); //deallocate the dynamic memory
+    return -1;
+  }
+
+  //close the file when done copying the memory
+  fclose("[filename].NES"); //FIXME (name)
+
+
   regSTAT = 0x20; //start the status register with only the unused bit enabled, as is standard
+
+
+
+  cleanup:
+
   return 0;
 }
 
