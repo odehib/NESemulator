@@ -139,12 +139,6 @@ int call_instruction()
   }
 
 
-  //instruction dictated by aaa and cc
-  call:
-    if(OP_LUT[cc][aaa]) return (*(OP_LUT[cc][aaa]))();  //call the necessary instruction and return its value
-    else return -1; //return -1 if an invalid instruction was called (i.e. a null value in the array)
-    //some functions have a format that will point to the NULL entry in this array, but those calls should never reach this subroutine
-
 
 
 
@@ -154,7 +148,7 @@ int call_instruction()
   value to be used is the byte immediately after the opcodes
   send a pointer to this value to the instruction
   */
-  immediate:
+immediate:
     input = ROM + (int8_t*)regPC + 1;   //#immediate addressing mode - 8 bit value
     regPC += 2;               //two bytes used by opcode and immediate byte, increment by two bytes
     goto call;
@@ -163,7 +157,7 @@ int call_instruction()
   value to be used is stored in the zero-page (i.e. one byte) address stored immediately after the opcode
   send this address to the instruction
   */
-  zp_abs:
+zp_abs:
     input = (int8_t*)(ROM[regPC + 1]);  //zero page absolute addressing
     regPC += 2;   //two byte instruction
     goto call;
@@ -174,7 +168,7 @@ int call_instruction()
   NOTE: although the address is a two-byte address, it can still be stored as int8_t* since this just specifies the length of the value it points to
   (I have a common misconception that it must be int16_t* instead, which is NOT true)
   */
-  absolute:
+absolute:
     temp_ptr = ROM + (int8_t*)regPC + 1;  //use temp pointer to add one byte to the address and get the immediate two byte value
     input = (int8_t*)(*((int16_t*)temp_ptr));   //set input as two bytes at specified temp_ptr address and store it as a character pointer
     regPC+=3; //3 byte instruction
@@ -185,7 +179,7 @@ int call_instruction()
   receive byte immediately following opcode and add it to the X register to get this address
   send this address to the instruction
   */
-  zp_indexX:
+zp_indexX:
     input = (int8_t*)(ROM[regPC+1] + regX);
     regPC+=2; //two byte instruction
     goto call;
@@ -195,7 +189,7 @@ int call_instruction()
   receive byte immediately following opcode and add it to the Y register to get this address
   send this address to the instruction
   */
-  zp_indexY:
+zp_indexY:
     input = (int8_t*)(ROM[regPC+1] + regY);
     regPC+=2; //two byte instruction
     goto call;
@@ -205,7 +199,7 @@ int call_instruction()
   address to be used is the two bytes immediately following the opcode added to the X register
   send this address to the instruction
   */
-  abs_indX:   //i.e. $1004, X
+abs_indX:   //i.e. $1004, X
     temp_ptr = ROM + (int8_t*)regPC + 1;  //use temp pointer to add one byte to the address and get the immediate two byte value
     input = (int8_t*)(*((int16_t*)temp_ptr));   //set input as two bytes at specified temp_ptr address and store it as a character pointer
     input += (int8_t*)regX; //add X to the input value
@@ -216,7 +210,7 @@ int call_instruction()
   address to be used is the two bytes immediately following the opcode added to the Y register
   send this address to the instruction
   */
-  abs_indY: //i.e. $1004, Y
+abs_indY: //i.e. $1004, Y
     temp_ptr = ROM + (int8_t*)regPC + 1;  //use temp pointer to add one byte to the address and get the immediate two byte value
     input = (int8_t*)(*((int16_t*)temp_ptr));   //set input as two bytes at specified temp_ptr address and store it as a character pointer
     input += (int8_t*)regY; //add Y to the input value
@@ -228,7 +222,7 @@ int call_instruction()
   addition overflow is cyclical, ensuring the target is always stored in the zero page
   send the address stored in the zero page to the instruction
   */
-  indirX:  //indexed indirect i.e. ($20, X)
+indirX:  //indexed indirect i.e. ($20, X)
     temp_ptr = (int8_t*)(ROM[regPC + 1] + regX);  //receive immediate byte for zero page index and add it to X
     temp_ptr = temp_ptr & 0xFF; //bitmask to have circular address loop in the zero page
     input = (int8_t*)(*((int16_t*)temp_ptr)); //receive two bytes stored at temp_ptr value
@@ -240,7 +234,7 @@ int call_instruction()
   mathematically: input = regY + zeropage[imm8]
   send this input to the instruction
   */
-  indirY: //indirect indexed i.e. ($86), Y
+indirY: //indirect indexed i.e. ($86), Y
     temp = ROM[regPC + 1];
     input = (int8_t*)(*((int16_t*)temp)); //store the two bytes stored at the designated zero page address in input
     input += (int8_t*)regY; //add Y to the input value
@@ -251,7 +245,7 @@ int call_instruction()
   corresponds to operations performed on the accumulator register value
   send a pointer to the accumulator register to the instruction
   */
-  accumulator:
+accumulator:
     input = &regACC;
     goto call;
 
@@ -260,27 +254,38 @@ int call_instruction()
   offset to be used is the byte after the opcode
   pass this value to the branch function
   */
-  branch:
+branch:
     input = ROM + (int8_t*)regPC + 1; //input to be branched by is the single byte after the opcode
     regPC+=2; //two byte instruction
     return BRANCH();
 
   /* all single byte opcodes that end in 0x8 are confined to their own array for simplicity */
-  X8:
+X8:
     regPC++;  //single byte instructions
     return (*(X8_LUT[(curr_instruction>>4)]))();      //bitshift by 4 to get the 4 msb's to distinguish each function
 
-  X0:
+X0:
     input = ROM + (int8_t*)regPC + 1; //input for absolute addressing mode for JSR
     regPC += 1 + ((temp==2) * 2); //temp=2 indicates an absolute JSR, which is a 3 byte instruction - all others are a single byte (implied addressing modes)
     temp>>2;  //divide temp by two to index into the X0 array
     return (*(X0_LUT[temp]))(); //call the function corresponsing to the first four bits
 
-  XA:
+XA:
     regPC++;  //all instructions here are a single byte long
     temp = curr_instruction>>4;
     if(temp==0xE) return NOP(); //doesn't fit with the indexing scheme below and is therefore called independently
     temp-=(0x8);  //instructions start at 0x8A, so subtract 8 from 'temp' (the first four bits of the opcode)
     return (*(XA_LUT[temp]))();
+
+
+
+
+    //instruction dictated by aaa and cc
+call:
+    if(OP_LUT[cc][aaa]) return (*(OP_LUT[cc][aaa]))();  //call the necessary instruction and return its value
+    else return -1; //return -1 if an invalid instruction was called (i.e. a null value in the array)
+    //some functions have a format that will point to the NULL entry in this array, but those calls should never reach this subroutine
+
+
 
 }
