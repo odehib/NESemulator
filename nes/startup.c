@@ -283,7 +283,7 @@ XA:
 
 
 
-
+    //change call to its own function that takes in a function pointer? TODO
     //instruction dictated by aaa and cc
 call:
     if(OP_LUT[cc][aaa]) return (*(OP_LUT[cc][aaa]))();  //call the necessary instruction and return its value
