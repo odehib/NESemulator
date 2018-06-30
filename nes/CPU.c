@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include "CPU.h"
 
+//TODO: figure out a way to remove if-statements if possible
+
 //enable status bits by ORing the proper constant defined below
 //disable status bits by ANDing the inverse of the proper constant defined below
 #define CARRY 0x01
