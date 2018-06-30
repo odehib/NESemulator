@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include "startup.h"
 
+//TODO: get rid of goto statements and replace them with functions
+//NOTE: goto's are considered bad style and should be avoided to make code \
+more readable
+
 #define CCFILTER 0x03  //filter only the last two bits of the instruction
 #define BBBFILTER 0x1C  //filter bits 2-4 of the instruction
 #define AAAFILTER 0xE0  //filter bits 5-7 of the instruction
